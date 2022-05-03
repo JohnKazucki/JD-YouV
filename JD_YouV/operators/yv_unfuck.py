@@ -1,3 +1,4 @@
+from select import select
 import bpy
 import bmesh
 
@@ -23,11 +24,10 @@ class JD_OT_UV_unfuck(Operator):
         bm = bmesh.from_edit_mesh(me)
         uv_layer = bm.loops.layers.uv.verify()
 
+        selected_UV_verts = []
         selected_verts = []
 
         for face in bm.faces:
-            print(f"UVs in face {face.index}")
-
             for loop in face.loops:
                 loop_uv = loop[uv_layer]
 
@@ -36,13 +36,90 @@ class JD_OT_UV_unfuck(Operator):
                 # print(loop_uv.select)
 
                 if loop_uv.select:
-                    selected_verts.append(loop_uv)
+                    selected_UV_verts.append(loop_uv)
+                    selected_verts.append(loop.vert)
 
-                    loop_uv.uv = Vector((0, 0))
-
-                # print(f"    - uv coordinate: {uv.co}, selection status: {uv.select}, corresponding vertex ID: {loop.vert.index}")
-
-        print(selected_verts)
         bmesh.update_edit_mesh(me)
 
+        bm = bmesh.from_edit_mesh(me)
+        bm.select_mode = {'VERT'}
+        for v in bm.verts:
+            v.select = 0
+            if v in selected_verts:
+                v.select = 1
+        bm.select_flush_mode()   
+        me.update()
+
+        get_end_vertices(bm, selected_verts, selected_UV_verts)
+
+        me.update()
+
         return {'FINISHED'}
+
+
+def get_end_vertices(bm, selected_verts, selected_UV_verts):
+    # works for an edit mode selection, not a UV selection
+
+    verts=[]
+
+    bm.select_mode = {'VERT'}
+
+    for v in bm.verts:
+        if v.select:
+            n_verts = []
+            for e in v.link_edges:
+                if e.select:
+                    n_verts.append(e)
+
+            if len(n_verts) == 1:
+                print("including")
+                verts.append(v)
+                v.select = 0
+
+    print(verts)
+
+    bm.select_flush_mode()   
+
+
+
+
+
+def get_end_vertices_v2(bm, selected_verts, selected_UV_verts):
+    pass 
+    # works for selections that are non cyclic in 3D space
+    # how likely are cyclical selections in 3D space for this...
+
+    # print("new run")
+    
+    # ends = []
+    # remove = []
+    # for v in selected_verts:
+        
+    #     point = bm.verts[v.index]
+    #     n_verts = []
+    #     for e in point.link_edges:
+    #         other_v = e.other_vert(v)
+    #         if other_v in selected_verts:
+    #             n_verts.append(other_v)
+    #     if len(n_verts) ==1:
+    #         if v not in ends:
+    #             # ends.append(v)
+
+    #             #find the same vertex as the point in the selected verts, get its uv coor
+    #             print(selected_UV_verts[selected_verts.index(v)].uv)
+    #             # UV space endpoints
+    #             ends.append(selected_UV_verts[selected_verts.index(v)])
+    #             remove.append(v)
+
+    # if len(ends) == 0:
+    #     print("Selection is cyclic in 3D")
+
+    # print("pre")
+    # print(selected_verts)
+
+    # for elem in remove:
+    #     selected_verts.remove(elem)
+
+    # print("post")
+    # print(selected_verts)
+    
