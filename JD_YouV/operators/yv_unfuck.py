@@ -70,6 +70,12 @@ class JD_OT_UV_unfuck(Operator):
 
         bmesh.update_edit_mesh(me)
 
+        bm.select_mode = {'VERT'}
+        for v in bm.verts:
+            v.select = 1
+        bm.select_flush_mode()   
+        bmesh.update_edit_mesh(me)
+
         print(uv_tails)
         print(uv_starts)
 
