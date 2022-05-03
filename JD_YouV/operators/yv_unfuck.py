@@ -4,7 +4,11 @@ import bmesh
 
 from bpy.types import Operator
 
-from mathutils import Vector
+import gpu
+from gpu_extras.batch import batch_for_shader
+
+import mathutils
+# from mathutils import Vector
 
 class JD_OT_UV_unfuck(Operator):
     bl_idname = "uv.youv_unfuck"
@@ -48,16 +52,55 @@ class JD_OT_UV_unfuck(Operator):
             if v in selected_verts:
                 v.select = 1
         bm.select_flush_mode()   
-        me.update()
+        bmesh.update_edit_mesh(me)
 
-        get_end_vertices(bm, selected_verts, selected_UV_verts)
+        uv_tails = []
+        uv_starts = []
 
-        me.update()
+        tails = get_end_vertices(bm)
+        for tail in tails:
+            uv_coor = selected_UV_verts[selected_verts.index(tail)].uv
+            uv_tails.append(uv_coor)
+
+
+        starts = get_end_vertices(bm)
+        for start in starts:
+            uv_coor = selected_UV_verts[selected_verts.index(start)].uv
+            uv_starts.append(uv_coor)
+
+        bmesh.update_edit_mesh(me)
+
+        print(uv_tails)
+        print(uv_starts)
+
+        pos1 = uv_starts[0].to_3d()
+        pos2 = uv_starts[1].to_3d()
+
+        dir1 = uv_starts[1].to_3d()-uv_tails[1].to_3d()
+        dir1 = dir1.normalized()
+        dir2 = uv_starts[0].to_3d()-uv_tails[0].to_3d()
+        dir2 = dir2.normalized()
+
+        handle1 = pos1 + dir1 * .1
+        handle2 = pos2 + dir2 * .1
+
+
+        coords = mathutils.geometry.interpolate_bezier(pos1, handle1, handle2, pos2, 4)
+
+
+        shader = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
+        batch = batch_for_shader(shader, 'LINE_STRIP', {"pos": coords})
+
+        args = (shader, batch)
+
+        drawhandler = bpy.types.SpaceView3D.draw_handler_add(draw, args, 'WINDOW', 'POST_VIEW')
+
+        bmesh.update_edit_mesh(me)
 
         return {'FINISHED'}
 
 
-def get_end_vertices(bm, selected_verts, selected_UV_verts):
+def get_end_vertices(bm):
     # works for an edit mode selection, not a UV selection
 
     verts=[]
@@ -76,16 +119,26 @@ def get_end_vertices(bm, selected_verts, selected_UV_verts):
                 verts.append(v)
                 v.select = 0
 
+    bm.select_flush_mode()
+
     print(verts)
 
-    bm.select_flush_mode()   
+    return verts
 
+       
+def draw(shader, batch):
+    shader.bind()
+    shader.uniform_float("color", (1, 1, 0, 1))
+    batch.draw(shader)
+
+    
+
+        
 
 
 
 
 def get_end_vertices_v2(bm, selected_verts, selected_UV_verts):
-    pass 
     # works for selections that are non cyclic in 3D space
     # how likely are cyclical selections in 3D space for this...
 
@@ -122,4 +175,6 @@ def get_end_vertices_v2(bm, selected_verts, selected_UV_verts):
 
     # print("post")
     # print(selected_verts)
+    pass 
+    
     
