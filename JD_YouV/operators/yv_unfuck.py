@@ -43,31 +43,38 @@ class JD_OT_UV_unfuck(Operator):
                     selected_UV_verts.append(loop_uv)
                     selected_verts.append(loop.vert)
 
-        bmesh.update_edit_mesh(me)
+        # convert UV selection to edit mode selection
+        uv_to_bmesh_selection(bm, me, selected_verts)
 
-        bm = bmesh.from_edit_mesh(me)
-        bm.select_mode = {'VERT'}
-        for v in bm.verts:
-            v.select = 0
-            if v in selected_verts:
-                v.select = 1
-        bm.select_flush_mode()   
-        bmesh.update_edit_mesh(me)
+        # order vertices from one of the endpoints of the selection        
+        v_start = get_end_vertex(bm)
+        v_ordered = edge_selection_walker(bm, v_start)
 
-        uv_tails = []
-        uv_starts = []
+        # first, second, second to last and last element of the sorted vertex selection
+        interp_verts = [v_ordered[0], v_ordered[1], v_ordered[-2], v_ordered[-1]]
+        interp_coors = []
 
-        tails = get_end_vertices(bm)
-        for tail in tails:
-            uv_coor = selected_UV_verts[selected_verts.index(tail)].uv
-            uv_tails.append(uv_coor)
+        for vert in interp_verts:
+            uv_coor = selected_UV_verts[selected_verts.index(vert)].uv
+            interp_coors.append(uv_coor)
+
+        
+        bezier_coors = curve_bound_edges_to_bezier(interp_coors, len(v_ordered)-2)
 
 
-        starts = get_end_vertices(bm)
-        for start in starts:
-            uv_coor = selected_UV_verts[selected_verts.index(start)].uv
-            uv_starts.append(uv_coor)
 
+        v_to_fix = v_ordered[1:-1]
+
+        for index, vert in enumerate(v_to_fix):
+
+            # grab the indices of the selected UV vert, can appear multiple times in selected_verts (once for each loop? or Face?)
+            vert_indices = [i for i, x in enumerate(selected_verts) if x == vert]
+
+            # for each each appearance of a vertex in selected_verts, use its index to grab the relevant UV data
+            for v_index in vert_indices:
+                selected_UV_verts[v_index].uv = bezier_coors[index]
+
+        # just to be safe
         bmesh.update_edit_mesh(me)
 
         bm.select_mode = {'VERT'}
@@ -76,37 +83,23 @@ class JD_OT_UV_unfuck(Operator):
         bm.select_flush_mode()   
         bmesh.update_edit_mesh(me)
 
-        print(uv_tails)
-        print(uv_starts)
-
-        pos1 = uv_starts[0].to_3d()
-        pos2 = uv_starts[1].to_3d()
-
-        dir1 = uv_starts[1].to_3d()-uv_tails[1].to_3d()
-        dir1 = dir1.normalized()
-        dir2 = uv_starts[0].to_3d()-uv_tails[0].to_3d()
-        dir2 = dir2.normalized()
-
-        handle1 = pos1 + dir1 * .1
-        handle2 = pos2 + dir2 * .1
-
-
-        coords = mathutils.geometry.interpolate_bezier(pos1, handle1, handle2, pos2, 4)
-
-
-        shader = gpu.shader.from_builtin('3D_UNIFORM_COLOR')
-        batch = batch_for_shader(shader, 'LINE_STRIP', {"pos": coords})
-
-        args = (shader, batch)
-
-        drawhandler = bpy.types.SpaceView3D.draw_handler_add(draw, args, 'WINDOW', 'POST_VIEW')
-
-        bmesh.update_edit_mesh(me)
-
         return {'FINISHED'}
 
 
-def get_end_vertices(bm):
+
+def uv_to_bmesh_selection(bm, me, selected_verts):
+    
+    bmesh.update_edit_mesh(me)
+
+    bm.select_mode = {'VERT'}
+    for v in bm.verts:
+        v.select = 0
+        if v in selected_verts:
+            v.select = 1
+    bm.select_flush_mode()   
+    bmesh.update_edit_mesh(me)
+
+def get_end_vertex(bm):
     # works for an edit mode selection, not a UV selection
 
     verts=[]
@@ -121,66 +114,54 @@ def get_end_vertices(bm):
                     n_verts.append(e)
 
             if len(n_verts) == 1:
-                print("including")
-                verts.append(v)
-                v.select = 0
+                bm.select_flush_mode()
+                return v
 
-    bm.select_flush_mode()
+    print("ERROR: NO ENDPOINT FOUND")
+    return None     
 
-    print(verts)
+def edge_selection_walker(bm, v_start):
 
-    return verts
+    # based on https://blender.stackexchange.com/questions/69796/selection-history-from-shortest-path
 
-       
+    verts = [v for v in bm.verts if v.select]
+    v_ordered = [v_start]
+
+    for i in range(len(verts)):
+        v=v_ordered[i]
+        edges = v.link_edges
+
+        for e in edges:
+            if e.select:
+                vn = e.other_vert(v)
+                if vn not in v_ordered:
+                    v_ordered.append(vn)
+
+    return v_ordered
+
+def curve_bound_edges_to_bezier(point_coors, num_bezier_points):
+
+    pos1 = point_coors[1]
+    pos2 = point_coors[2]
+
+    dir1 = point_coors[1]-point_coors[0]
+    dir1 = dir1.normalized()
+    dir2 = point_coors[2]-point_coors[3]
+    dir2 = dir2.normalized()
+
+    tension = 0.1
+
+    handle1 = pos1 + dir1 * tension
+    handle2 = pos2 + dir2 * tension
+
+    bezier_coors = mathutils.geometry.interpolate_bezier(pos1, handle1, handle2, pos2, num_bezier_points)
+
+    # includes pos1 and pos2 location
+    return bezier_coors
+
 def draw(shader, batch):
     shader.bind()
     shader.uniform_float("color", (1, 1, 0, 1))
     batch.draw(shader)
 
-    
-
-        
-
-
-
-
-def get_end_vertices_v2(bm, selected_verts, selected_UV_verts):
-    # works for selections that are non cyclic in 3D space
-    # how likely are cyclical selections in 3D space for this...
-
-    # print("new run")
-    
-    # ends = []
-    # remove = []
-    # for v in selected_verts:
-        
-    #     point = bm.verts[v.index]
-    #     n_verts = []
-    #     for e in point.link_edges:
-    #         other_v = e.other_vert(v)
-    #         if other_v in selected_verts:
-    #             n_verts.append(other_v)
-    #     if len(n_verts) ==1:
-    #         if v not in ends:
-    #             # ends.append(v)
-
-    #             #find the same vertex as the point in the selected verts, get its uv coor
-    #             print(selected_UV_verts[selected_verts.index(v)].uv)
-    #             # UV space endpoints
-    #             ends.append(selected_UV_verts[selected_verts.index(v)])
-    #             remove.append(v)
-
-    # if len(ends) == 0:
-    #     print("Selection is cyclic in 3D")
-
-    # print("pre")
-    # print(selected_verts)
-
-    # for elem in remove:
-    #     selected_verts.remove(elem)
-
-    # print("post")
-    # print(selected_verts)
-    pass 
-    
     
