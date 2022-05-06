@@ -24,8 +24,12 @@ class YV_PT_DEV(YV_PT_IMAGE_EDITOR, Panel):
 
     def draw(self, context):
         scene = context.scene
+        YV_unfuck_props = scene.YV_unfuck
         
         layout = self.layout
 
         row = layout.row()
         row.operator("uv.youv_unfuck", text="unf*ck")
+
+        row = layout.row()
+        row.prop(YV_unfuck_props, "tension")

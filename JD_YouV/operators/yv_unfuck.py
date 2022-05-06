@@ -10,6 +10,10 @@ from gpu_extras.batch import batch_for_shader
 import mathutils
 # from mathutils import Vector
 
+class JD_Unfuck_Props(bpy.types.PropertyGroup):
+    tension : bpy.props.FloatProperty(name = "Tension", min = 0, max = 1, default= .1)
+
+
 class JD_OT_UV_unfuck(Operator):
     bl_idname = "uv.youv_unfuck"
     bl_label = "unf*ck selection"
@@ -23,6 +27,9 @@ class JD_OT_UV_unfuck(Operator):
 
         # based on https://devtalk.blender.org/t/getting-uv-selection-data-solved/11290/2
         # and the Operator Mesh Uv template from the blender scripting editor
+
+        unfuck_props = context.scene.YV_unfuck
+        tension = unfuck_props.tension
 
         me = bpy.context.active_object.data
         bm = bmesh.from_edit_mesh(me)
@@ -59,7 +66,7 @@ class JD_OT_UV_unfuck(Operator):
             interp_coors.append(uv_coor)
 
         
-        bezier_coors = curve_bound_edges_to_bezier(interp_coors, len(v_ordered)-2)
+        bezier_coors = curve_bound_edges_to_bezier(interp_coors, len(v_ordered)-2, tension)
 
 
 
@@ -139,7 +146,7 @@ def edge_selection_walker(bm, v_start):
 
     return v_ordered
 
-def curve_bound_edges_to_bezier(point_coors, num_bezier_points):
+def curve_bound_edges_to_bezier(point_coors, num_bezier_points, tension):
 
     pos1 = point_coors[1]
     pos2 = point_coors[2]
@@ -149,8 +156,6 @@ def curve_bound_edges_to_bezier(point_coors, num_bezier_points):
     dir2 = point_coors[2]-point_coors[3]
     dir2 = dir2.normalized()
 
-    tension = 0.1
-
     handle1 = pos1 + dir1 * tension
     handle2 = pos2 + dir2 * tension
 
@@ -159,9 +164,4 @@ def curve_bound_edges_to_bezier(point_coors, num_bezier_points):
     # includes pos1 and pos2 location
     return bezier_coors
 
-def draw(shader, batch):
-    shader.bind()
-    shader.uniform_float("color", (1, 1, 0, 1))
-    batch.draw(shader)
 
-    
