@@ -6,5 +6,5 @@ UV unwrapping toolkit for Blender
 ### Unf\*ck
 
 Based on Meshmachine's 3D mesh unf\*ck tool, but for the UV editor
-https://user-images.githubusercontent.com/83173898/167675650-bbc008f7-1e74-437e-929c-2300f50c73f5.mp4
 
+![YouV unfck gif](https://user-images.githubusercontent.com/83173898/167676373-bb180653-2783-49a8-bafa-80310f0b1fa7.gif)
