@@ -20,7 +20,7 @@ class YV_PT_IMAGE_EDITOR:
 
 # -- DEV PANELS
 class YV_PT_DEV(YV_PT_IMAGE_EDITOR, Panel):
-    bl_label = "DEV"
+    bl_label = "unf*ck"
 
     def draw(self, context):
         scene = context.scene

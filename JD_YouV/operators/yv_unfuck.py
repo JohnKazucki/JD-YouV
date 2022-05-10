@@ -11,7 +11,7 @@ import mathutils
 # from mathutils import Vector
 
 class JD_Unfuck_Props(bpy.types.PropertyGroup):
-    tension : bpy.props.FloatProperty(name = "Tension", min = 0, max = 1, default= .1)
+    tension : bpy.props.FloatProperty(name = "Tension", min = 0, max = 1, default= .3)
 
 
 class JD_OT_UV_unfuck(Operator):
@@ -51,6 +51,7 @@ class JD_OT_UV_unfuck(Operator):
                     selected_verts.append(loop.vert)
 
         # convert UV selection to edit mode selection
+        # TODO : we should be able to do all of this via loops in UV space, no need to convert, but for now this is the mentally simpler method to understand
         uv_to_bmesh_selection(bm, me, selected_verts)
 
         # order vertices from one of the endpoints of the selection        
@@ -69,7 +70,7 @@ class JD_OT_UV_unfuck(Operator):
         bezier_coors = curve_bound_edges_to_bezier(interp_coors, len(v_ordered)-2, tension)
 
 
-
+        # we don't need the first and last point in the selection, they only serve as guides for fixing the points between the first/last element
         v_to_fix = v_ordered[1:-1]
 
         for index, vert in enumerate(v_to_fix):
@@ -84,6 +85,8 @@ class JD_OT_UV_unfuck(Operator):
         # just to be safe
         bmesh.update_edit_mesh(me)
 
+        # select everything again
+        # TODO : store initial selection before running tool, restore it here
         bm.select_mode = {'VERT'}
         for v in bm.verts:
             v.select = 1
@@ -156,8 +159,12 @@ def curve_bound_edges_to_bezier(point_coors, num_bezier_points, tension):
     dir2 = point_coors[2]-point_coors[3]
     dir2 = dir2.normalized()
 
-    handle1 = pos1 + dir1 * tension
-    handle2 = pos2 + dir2 * tension
+    # scale tension based on the distance between end vertices
+    pos_distance = pos1-pos2
+    relative_tension = tension * pos_distance.length
+
+    handle1 = pos1 + dir1 * relative_tension
+    handle2 = pos2 + dir2 * relative_tension
 
     bezier_coors = mathutils.geometry.interpolate_bezier(pos1, handle1, handle2, pos2, num_bezier_points)
 

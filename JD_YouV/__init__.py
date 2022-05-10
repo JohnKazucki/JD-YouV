@@ -14,14 +14,15 @@
 import bpy
 
 bl_info = {
-    "name" : "JD YouV",
+    "name" : "YouV-Repair Kit",
     "author" : "João Desager",
-    "description" : "UV toolkit",
+    "description" : "UV unwrapping toolkit",
     "blender" : (3, 1, 0),
     "version" : (0, 1, 0),
-    "location" : "",
-    "warning" : "",
-    "category" : "Generic"
+    "location" : "UV Image Editor > Tools > 'YouV' Panel",
+    "warning" : "early release version",
+    "tracker_url" : "",
+    "category" : "UV"
 }
 
 
