@@ -14,21 +14,22 @@
 import bpy
 
 bl_info = {
-    "name" : "JD YouV",
+    "name" : "YouV-Repair Kit",
     "author" : "João Desager",
-    "description" : "UV toolkit",
+    "description" : "UV unwrapping toolkit",
     "blender" : (3, 1, 0),
     "version" : (0, 1, 0),
-    "location" : "",
-    "warning" : "",
-    "category" : "Generic"
+    "location" : "UV Image Editor > Tools > 'YouV' Panel",
+    "warning" : "early release version",
+    "tracker_url" : "",
+    "category" : "UV"
 }
 
 
-from . operators.yv_unfuck import JD_OT_UV_unfuck
+from . operators.yv_unfuck import JD_Unfuck_Props, JD_OT_UV_unfuck
 from . yv_panel import YV_PT_DEV
 
-classes = ( JD_OT_UV_unfuck,
+classes = ( JD_Unfuck_Props, JD_OT_UV_unfuck,
             YV_PT_DEV,
             )
 
@@ -37,7 +38,11 @@ def register():
     for c in classes:
         bpy.utils.register_class(c)
 
+    bpy.types.Scene.YV_unfuck = bpy.props.PointerProperty(type=JD_Unfuck_Props)
+
 def unregister():
     
     for c in classes:
         bpy.utils.unregister_class(c)
+
+    del bpy.types.Scene.YV_unfuck
