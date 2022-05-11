@@ -25,10 +25,6 @@ class JD_OT_UV_straighten(Operator):
 
         bmesh.update_edit_mesh(me)
         
-        for loop_uv in UV_loop_selection:
-            # print(loop_uv.select)
-            pass
-
         # get rid of duplicate vertices, these are here due to each 3D vertex having multiple UV vertices, one per loop
         unique_vert_selection = set(vert_selection)
 

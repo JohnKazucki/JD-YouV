@@ -1,7 +1,6 @@
-import bpy
-import bmesh
 
-from mathutils import Vector
+# UV utility functions
+
 
 def uv_selected_verts(bm):
 
@@ -23,61 +22,6 @@ def uv_selected_verts(bm):
     return selected_verts, selected_UV_verts
 
 
-def uv_to_bmesh_selection(bm, me, selected_verts):
-    
-    bmesh.update_edit_mesh(me)
-
-    bm.select_mode = {'VERT'}
-    for v in bm.verts:
-        v.select = 0
-        if v in selected_verts:
-            v.select = 1
-    bm.select_flush_mode()   
-    bmesh.update_edit_mesh(me)
-
-
-def get_end_vertex(bm):
-    # works for an edit mode selection, not a UV selection
-
-    verts=[]
-
-    bm.select_mode = {'VERT'}
-
-    for v in bm.verts:
-        if v.select:
-            n_verts = []
-            for e in v.link_edges:
-                if e.select:
-                    n_verts.append(e)
-
-            if len(n_verts) == 1:
-                bm.select_flush_mode()
-                return v
-
-    print("ERROR: NO ENDPOINT FOUND")
-    return None     
-
-
-def edge_selection_walker(bm, v_start):
-
-    # based on https://blender.stackexchange.com/questions/69796/selection-history-from-shortest-path
-
-    verts = [v for v in bm.verts if v.select]
-    v_ordered = [v_start]
-
-    for i in range(len(verts)):
-        v=v_ordered[i]
-        edges = v.link_edges
-
-        for e in edges:
-            if e.select:
-                vn = e.other_vert(v)
-                if vn not in v_ordered:
-                    v_ordered.append(vn)
-
-    return v_ordered
-
-
 def get_UV_end_vertices(bm, vert_selection):
 
     bm.verts.ensure_lookup_table()
@@ -95,6 +39,7 @@ def get_UV_end_vertices(bm, vert_selection):
             UV_end_verts.append(vert)
 
     return UV_end_verts
+
 
 def order_vertex_selection(bm, vert_selection, end_verts):
     v_ordered = [end_verts[0]]
