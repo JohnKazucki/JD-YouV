@@ -1,14 +1,12 @@
-from select import select
 import bpy
 import bmesh
 
 from bpy.types import Operator
 
-import gpu
-from gpu_extras.batch import batch_for_shader
-
 import mathutils
-# from mathutils import Vector
+
+from . yv_util import uv_selected_verts, get_UV_end_vertices, order_vertex_selection, vertex_coors_to_UV
+
 
 class JD_Unfuck_Props(bpy.types.PropertyGroup):
     tension : bpy.props.FloatProperty(name = "Tension", min = 0, max = 1, default= .3)
@@ -33,121 +31,34 @@ class JD_OT_UV_unfuck(Operator):
 
         me = bpy.context.active_object.data
         bm = bmesh.from_edit_mesh(me)
-        uv_layer = bm.loops.layers.uv.verify()
+        bm.loops.layers.uv.verify()
 
-        selected_UV_verts = []
-        selected_verts = []
+        vert_selection, UV_loop_selection = uv_selected_verts(bm)
+        unique_vert_selection = set(vert_selection)
 
-        for face in bm.faces:
-            for loop in face.loops:
-                loop_uv = loop[uv_layer]
+        # find the endpoints of the edge selection
+        UV_end_verts = get_UV_end_vertices(bm, unique_vert_selection)
+        v_ordered = order_vertex_selection(bm, unique_vert_selection, UV_end_verts)
 
-                # print(loop_uv.uv)
-                # print(loop.vert.co.xy)
-                # print(loop_uv.select)
-
-                if loop_uv.select:
-                    selected_UV_verts.append(loop_uv)
-                    selected_verts.append(loop.vert)
-
-        # convert UV selection to edit mode selection
-        # TODO : we should be able to do all of this via loops in UV space, no need to convert, but for now this is the mentally simpler method to understand
-        uv_to_bmesh_selection(bm, me, selected_verts)
-
-        # order vertices from one of the endpoints of the selection        
-        v_start = get_end_vertex(bm)
-        v_ordered = edge_selection_walker(bm, v_start)
 
         # first, second, second to last and last element of the sorted vertex selection
         interp_verts = [v_ordered[0], v_ordered[1], v_ordered[-2], v_ordered[-1]]
         interp_coors = []
 
         for vert in interp_verts:
-            uv_coor = selected_UV_verts[selected_verts.index(vert)].uv
+            uv_coor = UV_loop_selection[vert_selection.index(vert)].uv
             interp_coors.append(uv_coor)
 
-        
         bezier_coors = curve_bound_edges_to_bezier(interp_coors, len(v_ordered)-2, tension)
 
 
         # we don't need the first and last point in the selection, they only serve as guides for fixing the points between the first/last element
         v_to_fix = v_ordered[1:-1]
 
-        for index, vert in enumerate(v_to_fix):
-
-            # grab the indices of the selected UV vert, can appear multiple times in selected_verts (once for each loop? or Face?)
-            vert_indices = [i for i, x in enumerate(selected_verts) if x == vert]
-
-            # for each each appearance of a vertex in selected_verts, use its index to grab the relevant UV data
-            for v_index in vert_indices:
-                selected_UV_verts[v_index].uv = bezier_coors[index]
-
-        # just to be safe
-        bmesh.update_edit_mesh(me)
-
-        # select everything again
-        # TODO : store initial selection before running tool, restore it here
-        bm.select_mode = {'VERT'}
-        for v in bm.verts:
-            v.select = 1
-        bm.select_flush_mode()   
-        bmesh.update_edit_mesh(me)
+        vertex_coors_to_UV(me, v_to_fix, bezier_coors, vert_selection, UV_loop_selection)
 
         return {'FINISHED'}
 
-
-
-def uv_to_bmesh_selection(bm, me, selected_verts):
-    
-    bmesh.update_edit_mesh(me)
-
-    bm.select_mode = {'VERT'}
-    for v in bm.verts:
-        v.select = 0
-        if v in selected_verts:
-            v.select = 1
-    bm.select_flush_mode()   
-    bmesh.update_edit_mesh(me)
-
-def get_end_vertex(bm):
-    # works for an edit mode selection, not a UV selection
-
-    verts=[]
-
-    bm.select_mode = {'VERT'}
-
-    for v in bm.verts:
-        if v.select:
-            n_verts = []
-            for e in v.link_edges:
-                if e.select:
-                    n_verts.append(e)
-
-            if len(n_verts) == 1:
-                bm.select_flush_mode()
-                return v
-
-    print("ERROR: NO ENDPOINT FOUND")
-    return None     
-
-def edge_selection_walker(bm, v_start):
-
-    # based on https://blender.stackexchange.com/questions/69796/selection-history-from-shortest-path
-
-    verts = [v for v in bm.verts if v.select]
-    v_ordered = [v_start]
-
-    for i in range(len(verts)):
-        v=v_ordered[i]
-        edges = v.link_edges
-
-        for e in edges:
-            if e.select:
-                vn = e.other_vert(v)
-                if vn not in v_ordered:
-                    v_ordered.append(vn)
-
-    return v_ordered
 
 def curve_bound_edges_to_bezier(point_coors, num_bezier_points, tension):
 
@@ -170,5 +81,3 @@ def curve_bound_edges_to_bezier(point_coors, num_bezier_points, tension):
 
     # includes pos1 and pos2 location
     return bezier_coors
-
-

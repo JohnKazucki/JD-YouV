@@ -18,9 +18,8 @@ class YV_PT_IMAGE_EDITOR:
 
 # ----- UV EDITOR PANELS
 
-# -- DEV PANELS
-class YV_PT_DEV(YV_PT_IMAGE_EDITOR, Panel):
-    bl_label = "unf*ck"
+class YV_PT_UNFCK(YV_PT_IMAGE_EDITOR, Panel):
+    bl_label = "UV LAYOUT"
 
     def draw(self, context):
         scene = context.scene
@@ -33,3 +32,12 @@ class YV_PT_DEV(YV_PT_IMAGE_EDITOR, Panel):
 
         row = layout.row()
         row.prop(YV_unfuck_props, "tension")
+
+        row = layout.row()
+        row.separator()
+
+        row = layout.row()
+        row.operator("uv.youv_straighten", text="Straighten EdgeLoop")
+
+
+# -- DEV PANELS

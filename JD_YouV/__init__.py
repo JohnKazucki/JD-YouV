@@ -18,7 +18,7 @@ bl_info = {
     "author" : "João Desager",
     "description" : "UV unwrapping toolkit",
     "blender" : (3, 1, 0),
-    "version" : (0, 1, 0),
+    "version" : (0, 2, 0),
     "location" : "UV Image Editor > Tools > 'YouV' Panel",
     "warning" : "early release version",
     "tracker_url" : "",
@@ -27,10 +27,12 @@ bl_info = {
 
 
 from . operators.yv_unfuck import JD_Unfuck_Props, JD_OT_UV_unfuck
-from . yv_panel import YV_PT_DEV
+from . operators.yv_straighten import JD_OT_UV_straighten
+from . yv_panel import YV_PT_UNFCK
 
 classes = ( JD_Unfuck_Props, JD_OT_UV_unfuck,
-            YV_PT_DEV,
+            JD_OT_UV_straighten,
+            YV_PT_UNFCK,
             )
 
 def register():
