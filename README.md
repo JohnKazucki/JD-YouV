@@ -1,4 +1,4 @@
-# JD-YouV
+# YouV
 UV unwrapping toolkit for Blender
 note: this is an early release, expect bad UX and potential instability!
 
@@ -8,4 +8,10 @@ note: this is an early release, expect bad UX and potential instability!
 
 Based on MeshMachine's 3D mesh unf\*ck tool, but for the UV editor
 
-![YouV unfck gif](https://user-images.githubusercontent.com/83173898/167676373-bb180653-2783-49a8-bafa-80310f0b1fa7.gif)
+![YouV unfck](https://github.com/JohnKazucki/JD-YouV/blob/main/git_resources/YouV%20unfck%20gif.gif)
+
+### Straighten
+
+Evenly space vertices between endpoints of an edge/vertex selection
+
+![YouV straighten](https://github.com/JohnKazucki/JD-YouV/blob/main/git_resources/YouV%20straighten%20gif.gif)
