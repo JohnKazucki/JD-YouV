@@ -1,4 +1,4 @@
-# YouV
+# YouV v0.2.0
 UV unwrapping toolkit for Blender
 note: this is an early release, expect bad UX and potential instability!
 
