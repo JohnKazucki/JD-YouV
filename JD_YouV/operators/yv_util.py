@@ -1,10 +1,14 @@
 
+import bpy
+import bmesh
+
 # UV utility functions
 
 
 def uv_selected_verts(bm):
 
-    # Converts a UV selection to a set of vert indices and UV loops
+    # Converts a UV selection to a set of vert indices and associated UV loops
+    # Includes duplicate vertex IDs, one for each loop it is connected to (critical for modifying UVs via vertices)
 
     uv_layer = bm.loops.layers.uv.verify()
     bm.verts.ensure_lookup_table()
@@ -24,6 +28,13 @@ def uv_selected_verts(bm):
 
 def get_UV_end_vertices(bm, vert_selection):
 
+    # NOTE :  ONLY WORKS AS INTENDED FOR A SINGLE LOOP OF VERTICES
+
+    # go over each vertex in the selection
+    # via its connected edges, find neighbouring vertices
+    # count how many neighbours are in the selection
+    # if only 1 neighbour in the selection, we've found an "endpoint" of our selection
+
     bm.verts.ensure_lookup_table()
 
     UV_end_verts = []
@@ -35,6 +46,7 @@ def get_UV_end_vertices(bm, vert_selection):
             if edge.other_vert(vert) in vert_selection:
                 selected_neighbour_verts.append(edge.other_vert(vert))
             
+        # if the current vertex has less than 2 neighbours in the selection, it must be an "endpoint"
         if len(selected_neighbour_verts) < 2:
             UV_end_verts.append(vert)
 
@@ -42,13 +54,18 @@ def get_UV_end_vertices(bm, vert_selection):
 
 
 def order_vertex_selection(bm, vert_selection, end_verts):
+
+    # NOTE :  ONLY WORKS AS INTENDED FOR A SINGLE LOOP OF VERTICES
+
+    # use one of the endpoint vertices as the starting point to order our selection
+    # find its linked edges, find the other vertex connected to that edge
+    # if that vertex isn't already in the selection, append it to our ordered list of vertices
+    # in the next iteration of the for loop, we will search for the linked edges of the newly added vertex
+    
     v_ordered = [end_verts[0]]
 
-    print(vert_selection)
-
     for i in range(len(vert_selection)):
-        print(i)
-        print(v_ordered)
+
         vert=v_ordered[i]
         
         edges = vert.link_edges
@@ -62,3 +79,18 @@ def order_vertex_selection(bm, vert_selection, end_verts):
                 v_ordered.append(other_vert)
 
     return v_ordered
+
+
+def vertex_coors_to_UV(me, v_to_fix, fixed_coors, vert_selection, uv_loop_selection):
+
+    for idx, vert in enumerate(v_to_fix):
+        
+        # grab the indices of the selected UV vert, can appear multiple times in selected_verts (once for each loop? or Face?)
+        vert_indices = [i for i, x in enumerate(vert_selection) if x == vert]
+
+        # for each each appearance of a vertex in selected_verts, use its index to grab the relevant UV data
+        for v_index in vert_indices:
+            uv_loop_selection[v_index].uv = fixed_coors[idx]
+
+        # just to be safe
+        bmesh.update_edit_mesh(me)
