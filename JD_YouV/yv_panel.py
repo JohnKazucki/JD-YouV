@@ -33,3 +33,9 @@ class YV_PT_DEV(YV_PT_IMAGE_EDITOR, Panel):
 
         row = layout.row()
         row.prop(YV_unfuck_props, "tension")
+
+        row = layout.row()
+        row.separator()
+
+        row = layout.row()
+        row.operator("uv.youv_straighten", text="Straighten")

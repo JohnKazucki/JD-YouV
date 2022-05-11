@@ -1,14 +1,11 @@
-from select import select
 import bpy
 import bmesh
 
 from bpy.types import Operator
 
-import gpu
-from gpu_extras.batch import batch_for_shader
-
 import mathutils
-# from mathutils import Vector
+
+from . yv_util import uv_to_bmesh_selection, get_end_vertex, edge_selection_walker
 
 class JD_Unfuck_Props(bpy.types.PropertyGroup):
     tension : bpy.props.FloatProperty(name = "Tension", min = 0, max = 1, default= .3)
@@ -95,59 +92,6 @@ class JD_OT_UV_unfuck(Operator):
 
         return {'FINISHED'}
 
-
-
-def uv_to_bmesh_selection(bm, me, selected_verts):
-    
-    bmesh.update_edit_mesh(me)
-
-    bm.select_mode = {'VERT'}
-    for v in bm.verts:
-        v.select = 0
-        if v in selected_verts:
-            v.select = 1
-    bm.select_flush_mode()   
-    bmesh.update_edit_mesh(me)
-
-def get_end_vertex(bm):
-    # works for an edit mode selection, not a UV selection
-
-    verts=[]
-
-    bm.select_mode = {'VERT'}
-
-    for v in bm.verts:
-        if v.select:
-            n_verts = []
-            for e in v.link_edges:
-                if e.select:
-                    n_verts.append(e)
-
-            if len(n_verts) == 1:
-                bm.select_flush_mode()
-                return v
-
-    print("ERROR: NO ENDPOINT FOUND")
-    return None     
-
-def edge_selection_walker(bm, v_start):
-
-    # based on https://blender.stackexchange.com/questions/69796/selection-history-from-shortest-path
-
-    verts = [v for v in bm.verts if v.select]
-    v_ordered = [v_start]
-
-    for i in range(len(verts)):
-        v=v_ordered[i]
-        edges = v.link_edges
-
-        for e in edges:
-            if e.select:
-                vn = e.other_vert(v)
-                if vn not in v_ordered:
-                    v_ordered.append(vn)
-
-    return v_ordered
 
 def curve_bound_edges_to_bezier(point_coors, num_bezier_points, tension):
 

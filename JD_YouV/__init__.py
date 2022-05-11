@@ -27,9 +27,11 @@ bl_info = {
 
 
 from . operators.yv_unfuck import JD_Unfuck_Props, JD_OT_UV_unfuck
+from . operators.yv_straighten import JD_OT_UV_straighten
 from . yv_panel import YV_PT_DEV
 
 classes = ( JD_Unfuck_Props, JD_OT_UV_unfuck,
+            JD_OT_UV_straighten,
             YV_PT_DEV,
             )
 
