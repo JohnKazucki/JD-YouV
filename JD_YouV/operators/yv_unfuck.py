@@ -5,7 +5,7 @@ from bpy.types import Operator
 
 import mathutils
 
-from . yv_util import uv_selected_verts, get_UV_end_vertices, order_vertex_selection
+from . yv_util import uv_selected_verts, get_UV_end_vertices, order_vertex_selection, vertex_coors_to_UV
 
 
 class JD_Unfuck_Props(bpy.types.PropertyGroup):
@@ -49,32 +49,13 @@ class JD_OT_UV_unfuck(Operator):
             uv_coor = UV_loop_selection[vert_selection.index(vert)].uv
             interp_coors.append(uv_coor)
 
-        
         bezier_coors = curve_bound_edges_to_bezier(interp_coors, len(v_ordered)-2, tension)
 
 
         # we don't need the first and last point in the selection, they only serve as guides for fixing the points between the first/last element
         v_to_fix = v_ordered[1:-1]
 
-        for index, vert in enumerate(v_to_fix):
-
-            # grab the indices of the selected UV vert, can appear multiple times in selected_verts (once for each loop? or Face?)
-            vert_indices = [i for i, x in enumerate(vert_selection) if x == vert]
-
-            # for each each appearance of a vertex in selected_verts, use its index to grab the relevant UV data
-            for v_index in vert_indices:
-                UV_loop_selection[v_index].uv = bezier_coors[index]
-
-        # just to be safe
-        bmesh.update_edit_mesh(me)
-
-        # select everything again
-        # TODO : store initial selection before running tool, restore it here
-        bm.select_mode = {'VERT'}
-        for v in bm.verts:
-            v.select = 1
-        bm.select_flush_mode()   
-        bmesh.update_edit_mesh(me)
+        vertex_coors_to_UV(me, v_to_fix, bezier_coors, vert_selection, UV_loop_selection)
 
         return {'FINISHED'}
 
@@ -100,5 +81,3 @@ def curve_bound_edges_to_bezier(point_coors, num_bezier_points, tension):
 
     # includes pos1 and pos2 location
     return bezier_coors
-
-

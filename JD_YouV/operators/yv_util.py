@@ -92,5 +92,5 @@ def vertex_coors_to_UV(me, v_to_fix, fixed_coors, vert_selection, uv_loop_select
         for v_index in vert_indices:
             uv_loop_selection[v_index].uv = fixed_coors[idx]
 
-        # just to be safe
+        # UV changes require an update of the bmesh
         bmesh.update_edit_mesh(me)
